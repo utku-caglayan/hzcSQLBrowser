@@ -62,6 +62,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, func() tea.Msg {
 				return SubmitMsg(strings.Replace(m.textInput.Value(), "¬", "\n", -1))
 			}
+		case tea.KeyRunes:
+			for i, r := range tmsg.Runes {
+				if r == '\n' {
+					tmsg.Runes[i] = '¬'
+				}
+			}
 		}
 	case tea.WindowSizeMsg:
 		if !m.ready {
