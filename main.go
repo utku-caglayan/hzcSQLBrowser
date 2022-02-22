@@ -51,8 +51,7 @@ func (c controller) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch m := msg.(type) {
 	case textarea.SubmitMsg:
 		return c, func() tea.Msg {
-			lt := strings.ToLower(string(m))
-			lt = strings.TrimSpace(lt)
+			lt := strings.TrimSpace(string(m))
 			var w bytes.Buffer
 			if err := execSQL(c.client, lt, &w); err != nil {
 				w.WriteString(err.Error())
