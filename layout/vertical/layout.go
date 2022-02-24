@@ -35,6 +35,10 @@ func (l model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		cmds := l.updateComponentsWithNewSize(m)
 		return l, tea.Batch(cmds...)
+	case tea.KeyMsg:
+		if k := m.String(); k == "ctrl+c" || k == "ctrl+q" {
+			return l, tea.Quit
+		}
 	}
 	var cmds []tea.Cmd
 	for i, c := range l.components {

@@ -4,12 +4,14 @@ package main
 // component library.
 
 import (
+	"database/sql"
+
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-type UpdatePagerMsg string
-
+type StringResultMsg string
+type TableResultMsg *sql.Rows
 type model struct {
 	content       string
 	ready         bool
@@ -28,7 +30,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	)
 
 	switch msg := msg.(type) {
-	case UpdatePagerMsg:
+	case StringResultMsg:
 		newVP := viewport.New(m.viewport.Width, m.viewport.Height)
 		newVP.YPosition = m.viewport.Height
 		newVP.SetContent(string(msg))
