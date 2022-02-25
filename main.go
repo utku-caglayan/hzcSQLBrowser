@@ -35,6 +35,7 @@ type table struct {
 }
 
 func (t *table) Init() tea.Cmd {
+	tuiutil.Faint = true
 	if lipgloss.ColorProfile() == termenv.Ascii {
 		tuiutil.Ascii = true
 		lipgloss.SetColorProfile(termenv.Ascii)
@@ -78,6 +79,7 @@ func (t *table) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		if m.Type == tea.KeyTab {
 			t.keyboardFocus = !t.keyboardFocus
+			tuiutil.Faint = !tuiutil.Faint
 			return t, nil
 		}
 		if !t.keyboardFocus {
