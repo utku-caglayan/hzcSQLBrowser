@@ -199,7 +199,7 @@ func main() {
 		s,
 		textArea,
 		Heading{
-			title: "Execute C-x  Quit C-q/C-c  Toggle Focus C-t",
+			title: "Execute C-x  Quit C-q/C-c  Toggle Focus tab",
 			align: lipgloss.Left,
 		},
 	}, []int{-1, 3, -1, 1, -1}), client}

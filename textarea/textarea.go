@@ -6,6 +6,7 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 )
 
 type SubmitMsg string
@@ -92,6 +93,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m model) View() string {
-	return m.viewport.View()
+	content := m.viewport.View()
+	if !m.keyboardFocus {
+		content = lipgloss.NewStyle().Faint(true).Render(content)
+	}
+	return content
 	//return strings.Replace(m.textInput.View(), "¬", "\n", -1)
 }
