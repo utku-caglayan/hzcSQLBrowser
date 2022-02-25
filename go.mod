@@ -10,7 +10,7 @@ require (
 	github.com/mathaou/termdbms v0.0.0-20211029145829-f21f804b73e0
 )
 
-replace github.com/mathaou/termdbms v0.0.0-20211029145829-f21f804b73e0 => github.com/utku-caglayan/termdbms v0.0.0-20220224075702-c4386db9be46
+replace github.com/mathaou/termdbms v0.0.0-20211029145829-f21f804b73e0 => github.com/utku-caglayan/termdbms v0.0.0-20220225090717-c04a69a1db2d
 
 replace github.com/hazelcast/hazelcast-go-client v1.2.0 => github.com/hazelcast/hazelcast-go-client v1.1.2-0.20220124142245-1906eb58ac78
 

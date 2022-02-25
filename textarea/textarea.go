@@ -39,7 +39,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	//verticalMarginHeight := headerHeight //+ footerHeight
 	switch tmsg := msg.(type) {
 	case tea.KeyMsg:
-		if tmsg.Type == tea.KeyCtrlT {
+		if tmsg.Type == tea.KeyTab {
 			var tmp tea.Cmd
 			if m.keyboardFocus {
 				m.textInput.Blur()

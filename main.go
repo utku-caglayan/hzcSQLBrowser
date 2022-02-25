@@ -11,7 +11,9 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/hazelcast/hazelcast-go-client"
 	"github.com/hazelcast/hazelcast-go-client/logger"
+	"github.com/mathaou/termdbms/tuiutil"
 	"github.com/mathaou/termdbms/viewer"
+	"github.com/muesli/termenv"
 
 	"browser/layout/vertical"
 	"browser/textarea"
@@ -33,7 +35,17 @@ type table struct {
 }
 
 func (t *table) Init() tea.Cmd {
+	if lipgloss.ColorProfile() == termenv.Ascii {
+		tuiutil.Ascii = true
+		lipgloss.SetColorProfile(termenv.Ascii)
+	}
+	viewer.GlobalCommands["j"] = viewer.GlobalCommands["s"]
+	viewer.GlobalCommands["k"] = viewer.GlobalCommands["w"]
+	viewer.GlobalCommands["down"] = viewer.GlobalCommands["s"]
+	viewer.GlobalCommands["up"] = viewer.GlobalCommands["w"]
 	t.termdbmsTable = viewer.GetNewModel("", nil)
+	t.termdbmsTable.UI.BorderToggle = true
+	viewer.HeaderStyle.Bold(true)
 	return t.termdbmsTable.Init()
 }
 
@@ -64,16 +76,21 @@ func (t *table) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		t.termdbmsTable.SetViewSlices()
 		return t, nil
 	case tea.KeyMsg:
-		if m.Type == tea.KeyCtrlT {
+		if m.Type == tea.KeyTab {
 			t.keyboardFocus = !t.keyboardFocus
 			return t, nil
 		}
 		if !t.keyboardFocus {
 			return t, nil
 		}
+	case tea.MouseMsg:
+		if m.Type == tea.MouseLeft {
+			// this event selects cell in termdbms, disable it
+			return t, nil
+		}
 	case tea.WindowSizeMsg:
 		if m.Height > 0 {
-			m.Height += 1 // to eliminate termdbs global sizing staff (footer height).
+			m.Height += 0 // to eliminate termdbs global sizing staff (footer height).
 		}
 		msg = m
 	}

@@ -43,7 +43,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if k := msg.String(); k == "ctrl+c" || k == "esc" || k == "ctrl+q" {
 			return m, tea.Quit
 		}
-		if msg.Type == tea.KeyCtrlT {
+		if msg.Type == tea.KeyTab {
 			m.keyboardFocus = !m.keyboardFocus
 			return m, nil
 		}
