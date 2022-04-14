@@ -11,7 +11,7 @@ require (
 	github.com/muesli/termenv v0.11.1-0.20220212125758-44cd13922739
 )
 
-replace github.com/mathaou/termdbms v0.0.0-20211029145829-f21f804b73e0 => github.com/utku-caglayan/termdbms v0.0.0-20220225121949-c4f0816076a9
+replace github.com/mathaou/termdbms v0.0.0-20211029145829-f21f804b73e0 => github.com/utku-caglayan/termdbms v0.0.0-20220414051556-a56fc3899e73
 
 replace github.com/hazelcast/hazelcast-go-client v1.2.0 => github.com/hazelcast/hazelcast-go-client v1.1.2-0.20220124142245-1906eb58ac78
 

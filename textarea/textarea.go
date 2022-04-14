@@ -56,7 +56,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch tmsg.Type {
 		case tea.KeyEnter:
 			msg = tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("¬"), Alt: false}
-		case tea.KeyCtrlX:
+		case tea.KeyCtrlE:
 			//m.textInput.Blur()
 			//m.onSubmit(strings.Replace(m.textInput.Value(), "¬", "\n", -1))
 			//return m, nil

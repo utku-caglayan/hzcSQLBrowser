@@ -42,6 +42,8 @@ func (t *table) Init() tea.Cmd {
 	}
 	viewer.GlobalCommands["j"] = viewer.GlobalCommands["s"]
 	viewer.GlobalCommands["k"] = viewer.GlobalCommands["w"]
+	viewer.GlobalCommands["a"] = viewer.GlobalCommands["left"]
+	viewer.GlobalCommands["d"] = viewer.GlobalCommands["right"]
 	viewer.GlobalCommands["down"] = viewer.GlobalCommands["s"]
 	viewer.GlobalCommands["up"] = viewer.GlobalCommands["w"]
 	t.termdbmsTable = viewer.GetNewModel("", nil)
@@ -122,25 +124,41 @@ func (t *table) View() string {
 	return fmt.Sprintf("%s\n%s", header, content)
 }
 
-type Heading struct {
-	width int
-	title string
-	align lipgloss.Position
+type Shortcut struct {
+	key         string
+	description string
 }
 
-func (h Heading) Init() tea.Cmd {
+type Help struct {
+	width  int
+	values []Shortcut
+	align  lipgloss.Position
+}
+
+func (h Help) Init() tea.Cmd {
 	return nil
 }
 
-func (h Heading) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (h Help) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	if msg, ok := msg.(tea.WindowSizeMsg); ok {
 		h.width = msg.Width - 2
 	}
 	return h, nil
 }
 
-func (h Heading) View() string {
-	return HeadingStyle.Width(h.width).Align(h.align).Render(h.title)
+func (h Help) View() string {
+	base := lipgloss.NewStyle() //.BorderStyle(lipgloss.NormalBorder())
+	sh := base.Copy().Background(lipgloss.Color(tuiutil.Highlight())).Foreground(lipgloss.Color("#000000"))
+	def := base.Copy()
+	var b strings.Builder
+	for _, v := range h.values {
+		b.WriteString(sh.Render(fmt.Sprintf(" %s ", v.key)))
+		b.WriteString(" - ")
+		b.WriteString(def.Render(v.description))
+		b.WriteString("      ")
+	}
+	return b.String()
+	//return HeadingStyle.Width(h.width).Align(h.align).Border(lipgloss.NormalBorder()).Render(b.String())
 }
 
 type Separator int
@@ -192,19 +210,32 @@ func main() {
 	//pager := &model{}
 	//var termdbmsModel viewer.TuiModel
 	textArea := textarea.InitTextArea()
+	keys := make(map[string]string)
+	keys["^-x"] = "execute"
+	keys["^-c"] = "quit"
+	keys["tab"] = "toggle focus"
 	c := &controller{vertical.InitialModel([]tea.Model{
-		Heading{
-			title: "Result",
-			align: lipgloss.Center,
-		},
 		&table{},
 		s,
 		textArea,
-		Heading{
-			title: "Execute C-x  Quit C-q/C-c  Toggle Focus tab",
+		Help{
+			values: []Shortcut{
+				{
+					"^-e",
+					"execute",
+				},
+				{
+					"^-c",
+					"quit",
+				},
+				{
+					"tab",
+					"toggle focus",
+				},
+			},
 			align: lipgloss.Left,
 		},
-	}, []int{-1, 3, -1, 1, -1}), client}
+	}, []int{3, -1, 1, -1}), client}
 	p := tea.NewProgram(
 		c,
 		tea.WithMouseCellMotion(), // turn on mouse support, so we can track the mouse wheel
