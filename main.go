@@ -94,7 +94,7 @@ func (t *table) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	case tea.WindowSizeMsg:
 		if m.Height > 0 {
-			m.Height += 0 // to eliminate termdbs global sizing staff (footer height).
+			m.Height += -2 // footer, header height offset
 		}
 		msg = m
 	}
@@ -104,7 +104,6 @@ func (t *table) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (t *table) View() string {
-	//return viewer.AssembleTable(&t.termdbmsTable)
 	done := make(chan bool, 2)
 	defer close(done) // close
 	var header, content string
@@ -113,7 +112,6 @@ func (t *table) View() string {
 		*c = viewer.AssembleTable(&t.termdbmsTable)
 		done <- true
 	}(&content)
-
 	// header
 	go viewer.HeaderAssembly(&t.termdbmsTable, &header, &done)
 	<-done
@@ -158,7 +156,6 @@ func (h Help) View() string {
 		b.WriteString("      ")
 	}
 	return b.String()
-	//return HeadingStyle.Width(h.width).Align(h.align).Border(lipgloss.NormalBorder()).Render(b.String())
 }
 
 type Separator int
@@ -207,8 +204,6 @@ func main() {
 		panic(fmt.Sprint("cannot start hzc client", err))
 	}
 	var s Separator
-	//pager := &model{}
-	//var termdbmsModel viewer.TuiModel
 	textArea := textarea.InitTextArea()
 	keys := make(map[string]string)
 	keys["^-x"] = "execute"

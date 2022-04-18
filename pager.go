@@ -28,7 +28,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmd  tea.Cmd
 		cmds []tea.Cmd
 	)
-
 	switch msg := msg.(type) {
 	case StringResultMsg:
 		newVP := viewport.New(m.viewport.Width, m.viewport.Height)
