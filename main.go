@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"database/sql"
 	"fmt"
 	"os"
 	"strings"
@@ -16,8 +17,11 @@ import (
 	"github.com/muesli/termenv"
 
 	"browser/layout/vertical"
-	"browser/textarea"
+	"browser/multiline"
 )
+
+type StringResultMsg string
+type TableResultMsg *sql.Rows
 
 type controller struct {
 	tea.Model
@@ -177,12 +181,10 @@ func (s Separator) View() string {
 
 func (c controller) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch m := msg.(type) {
-	case textarea.SubmitMsg:
+	case multiline.SubmitMsg:
 		return c, func() tea.Msg {
 			lt := strings.TrimSpace(string(m))
 			var w bytes.Buffer
-			//if _, err := execSQL(c.client, lt, &w); err != nil {
-			//	w.WriteString(err.Error())
 			//}
 			rows, err := execSQL(c.client, lt, &w)
 			if err != nil {
@@ -204,7 +206,7 @@ func main() {
 		panic(fmt.Sprint("cannot start hzc client", err))
 	}
 	var s Separator
-	textArea := textarea.InitTextArea()
+	textArea := multiline.InitTextArea()
 	keys := make(map[string]string)
 	keys["^-x"] = "execute"
 	keys["^-c"] = "quit"
@@ -216,16 +218,20 @@ func main() {
 		Help{
 			values: []Shortcut{
 				{
-					"^-e",
+					"^E",
 					"execute",
 				},
 				{
-					"^-c",
+					"^C",
 					"quit",
 				},
 				{
-					"tab",
+					"Tab",
 					"toggle focus",
+				},
+				{
+					"^V",
+					"paste",
 				},
 			},
 			align: lipgloss.Left,
