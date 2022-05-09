@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -36,6 +37,7 @@ var HeadingStyle = func() lipgloss.Style {
 type table struct {
 	termdbmsTable viewer.TuiModel
 	keyboardFocus bool
+	lastIteration *SqlIterator
 }
 
 func (t *table) Init() tea.Cmd {
@@ -56,6 +58,8 @@ func (t *table) Init() tea.Cmd {
 	return t.termdbmsTable.Init()
 }
 
+type FetchMoreRowsMsg struct{}
+
 func (t *table) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch m := msg.(type) {
 	case StringResultMsg:
@@ -64,7 +68,6 @@ func (t *table) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		t.termdbmsTable.Data().EditTextBuffer = string(m)
 		return t, nil
 	case TableResultMsg:
-		i := 0
 		t.termdbmsTable.UI.RenderSelection = false
 		t.termdbmsTable.Data().EditTextBuffer = ""
 		t.termdbmsTable.QueryData = &viewer.UIData{
@@ -77,11 +80,27 @@ func (t *table) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			Database: t.termdbmsTable.Table().Database,
 			Data:     make(map[string]interface{}),
 		}
-		t.termdbmsTable.PopulateDataForResult(m, &i, "0")
+		t.lastIteration = NewSqlIterator(50, m)
+		return t, t.lastIteration.IterateCmd(50 * time.Millisecond)
+	case NewRowsMessage:
+		t.PopulateDataForResult(m)
 		t.termdbmsTable.UI.CurrentTable = 1
 		_ = t.termdbmsTable.NumHeaders() // to set maxHeaders global var, for side effect
 		t.termdbmsTable.SetViewSlices()
-		return t, nil
+		var cmd tea.Cmd
+		if !t.lastIteration.rowsFinished {
+			cmd = t.lastIteration.IterateCmd(50 * time.Millisecond)
+		}
+		return t, cmd
+	case FetchMoreRowsMsg:
+		if t.lastIteration.rowsFinished {
+			return t, nil
+		}
+		if t.lastIteration.Iterating {
+			return t, nil
+		}
+		go t.lastIteration.Iterate(50)
+		return t, t.lastIteration.IterateCmd(50 * time.Millisecond)
 	case tea.KeyMsg:
 		if m.Type == tea.KeyTab {
 			t.keyboardFocus = !t.keyboardFocus
@@ -102,9 +121,118 @@ func (t *table) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		msg = m
 	}
+	oldYOffset := t.termdbmsTable.Viewport.YOffset + t.termdbmsTable.GetRow()
 	tmp, cmd := t.termdbmsTable.Update(msg)
 	t.termdbmsTable = tmp.(viewer.TuiModel)
+	newYOffset := t.termdbmsTable.Viewport.YOffset + t.termdbmsTable.GetRow()
+	if t.lastIteration != nil {
+		userOnLastPage := newYOffset > t.lastIteration.totalProcessedLines-t.termdbmsTable.Viewport.Height
+		if newYOffset > oldYOffset {
+			if userOnLastPage {
+				cmd = tea.Batch(cmd, func() tea.Msg {
+					return FetchMoreRowsMsg{}
+				})
+			}
+		}
+
+	}
 	return t, cmd
+}
+
+type SqlIterator struct {
+	rows                *sql.Rows
+	resultPipe          chan []interface{}
+	rowsFinished        bool
+	totalProcessedLines int
+	columnNames         []string // cannot access these after rows.Close(), hence save them
+	Iterating           bool
+}
+
+func NewSqlIterator(maxIterationCount int, rows *sql.Rows) *SqlIterator {
+	var si SqlIterator
+	si.rows = rows
+	si.columnNames, _ = rows.Columns()
+	si.resultPipe = make(chan []interface{}, maxIterationCount+1)
+	go si.Iterate(maxIterationCount)
+	return &si
+}
+
+func (si *SqlIterator) Iterate(maxIterationCount int) {
+	si.Iterating = true
+	var i int
+	for i = 0; si.rows.Next() && i < maxIterationCount; i++ { // each row of the table
+		// golang wizardry
+		columns := make([]interface{}, len(si.columnNames))
+		columnPointers := make([]interface{}, len(si.columnNames))
+		// init interface array
+		for i := range columns {
+			columnPointers[i] = &columns[i]
+		}
+
+		si.rows.Scan(columnPointers...)
+		si.resultPipe <- columnPointers
+	}
+	si.rows.Err()
+	if i != maxIterationCount { // means query finished and there will be no more results
+		close(si.resultPipe)
+	}
+	si.Iterating = false
+}
+
+type NewRowsMessage [][]interface{}
+
+func (si *SqlIterator) IterateCmd(timeline time.Duration) func() tea.Msg {
+	return func() tea.Msg {
+		var newRows [][]interface{}
+		var timeout bool
+		for {
+			select {
+			case row := <-si.resultPipe:
+				if row == nil {
+					si.rowsFinished = true
+					return NewRowsMessage(newRows)
+				}
+				si.totalProcessedLines++
+				newRows = append(newRows, row)
+			case <-time.After(timeline):
+				timeout = true
+				break
+			}
+			if timeout {
+				break
+			}
+		}
+		return NewRowsMessage(newRows)
+	}
+}
+
+func (m *table) PopulateDataForResult(rows [][]interface{}) {
+	columnNames := m.lastIteration.columnNames
+	columnValues := make(map[string][]interface{})
+	if m.termdbmsTable.QueryResult != nil && m.termdbmsTable.QueryData != nil {
+		if m.termdbmsTable.QueryResult.Data["0"] != nil {
+			columnValues = m.termdbmsTable.QueryResult.Data["0"].(map[string][]interface{})
+		}
+	}
+
+	for _, row := range rows {
+		for i, colName := range columnNames {
+			val := row[i].(*interface{})
+			columnValues[colName] = append(columnValues[colName], *val)
+		}
+	}
+
+	// onto the next schema
+	if m.termdbmsTable.QueryResult != nil && m.termdbmsTable.QueryData != nil {
+		m.termdbmsTable.QueryResult.Data["0"] = columnValues
+		m.termdbmsTable.QueryData.TableHeaders["0"] = columnNames // headers for the schema, for later reference
+		m.termdbmsTable.QueryData.TableIndexMap[1] = "0"
+		return
+	}
+	m.termdbmsTable.Table().Data["0"] = columnValues       // data for schema, organized by column
+	m.termdbmsTable.Data().TableHeaders["0"] = columnNames // headers for the schema, for later reference
+	// mapping between schema and an int ( since maps aren't deterministic), for later reference
+	m.termdbmsTable.Data().TableIndexMap[1] = "0"
 }
 
 func (t *table) View() string {

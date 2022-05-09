@@ -17,8 +17,6 @@ replace github.com/mathaou/termdbms v0.0.0-20211029145829-f21f804b73e0 => github
 
 replace github.com/hazelcast/hazelcast-go-client v1.2.0 => github.com/hazelcast/hazelcast-go-client v1.1.2-0.20220124142245-1906eb58ac78
 
-replace github.com/hazelcast/hazelcast-commandline-client v1.0.0-test.10.0.20220216131918-7107007fe487 => github.com/utku-caglayan/hazelcast-commandline-client v1.0.0-test.1.0.20220218143523-d9b320f450d8
-
 require (
 	github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d // indirect
 	github.com/containerd/console v1.0.3 // indirect
