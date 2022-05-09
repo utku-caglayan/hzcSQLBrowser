@@ -80,6 +80,7 @@ func (t *table) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			Database: t.termdbmsTable.Table().Database,
 			Data:     make(map[string]interface{}),
 		}
+		t.termdbmsTable.MouseData = tea.MouseEvent{}
 		t.lastIteration = NewSqlIterator(50, m)
 		return t, t.lastIteration.IterateCmd(50 * time.Millisecond)
 	case NewRowsMessage:
@@ -111,10 +112,8 @@ func (t *table) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return t, nil
 		}
 	case tea.MouseMsg:
-		if m.Type == tea.MouseLeft {
-			// this event selects cell in termdbms, disable it
-			return t, nil
-		}
+		// disable all mouse events
+		return t, nil
 	case tea.WindowSizeMsg:
 		if m.Height > 0 {
 			m.Height += -2 // footer, header height offset
@@ -172,7 +171,6 @@ func (si *SqlIterator) Iterate(maxIterationCount int) {
 		si.rows.Scan(columnPointers...)
 		si.resultPipe <- columnPointers
 	}
-	si.rows.Err()
 	if i != maxIterationCount { // means query finished and there will be no more results
 		close(si.resultPipe)
 	}
