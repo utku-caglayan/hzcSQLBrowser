@@ -103,9 +103,15 @@ func (t *table) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		go t.lastIteration.Iterate(50)
 		return t, t.lastIteration.IterateCmd(50 * time.Millisecond)
 	case tea.KeyMsg:
-		if m.Type == tea.KeyTab {
+		switch m.Type {
+		case tea.KeyTab:
 			t.keyboardFocus = !t.keyboardFocus
 			tuiutil.Faint = !tuiutil.Faint
+			return t, nil
+		case tea.KeyCtrlC:
+			if t.lastIteration != nil {
+				t.lastIteration.rows.Close()
+			}
 			return t, nil
 		}
 		if !t.keyboardFocus {
@@ -167,8 +173,9 @@ func (si *SqlIterator) Iterate(maxIterationCount int) {
 		for i := range columns {
 			columnPointers[i] = &columns[i]
 		}
-
-		si.rows.Scan(columnPointers...)
+		if err := si.rows.Scan(columnPointers...); err != nil {
+			break
+		}
 		si.resultPipe <- columnPointers
 	}
 	if i != maxIterationCount { // means query finished and there will be no more results
@@ -348,7 +355,7 @@ func main() {
 					"execute",
 				},
 				{
-					"^C",
+					"^Q",
 					"quit",
 				},
 				{
@@ -358,6 +365,10 @@ func main() {
 				{
 					"^V",
 					"paste",
+				},
+				{
+					"^C",
+					"cancel query",
 				},
 			},
 			align: lipgloss.Left,
